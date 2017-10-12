@@ -107,7 +107,7 @@ class Manager
         $microtime = microtime(true); // cache microtime
         $db        = $this->getDb();
         $qid       = $this->getQueueId($queue->getName());
-        
+
         // start transaction handling
         try {
             if ( $max > 0 ) {
@@ -127,17 +127,19 @@ class Manager
                     $sql = "UPDATE " . $this->messageTable . "
                             SET
                                 handle = :handle,
-                                timeout = :timeout
+                                timeout = :timeout,
+                                attempts = :attempts
                             WHERE
                                 message_id = :id
                                 AND (handle IS NULL OR timeout+" . (int)$timeout . " < " . (int)$microtime.")";
 
                     $stmt = $db->prepare($sql);
-                    $stmt->bindParam(':handle', $data['handle'], \PDO::PARAM_STR);
                     $stmt->bindParam(':id', $data['message_id'], \PDO::PARAM_STR);
-                    $stmt->bindValue(':timeout', $microtime);
+                    $stmt->bindParam(':handle', $data['handle'], \PDO::PARAM_STR);
+                    $stmt->bindValue(':timeout', $microtime, \PDO::PARAM_INT);
+                    $stmt->bindValue(':attempts', ++$data['attempts'], \PDO::PARAM_INT);
                     $updated = $stmt->execute();
-                    
+
                     if ($updated) {
                         $messages[] = $data;
                     }
@@ -148,12 +150,13 @@ class Manager
             $db->rollBack();
             throw $e;
         }
-        
+
         $m = array();
         foreach($messages as $msg) {
             $message = unserialize(base64_decode($msg['body']));
             if($message instanceof Message) {
                 $message->message_id = $msg['message_id'];
+                $message->attempts = $msg['attempts'];
                 $m[] = $message;
             }
         }
@@ -168,13 +171,19 @@ class Manager
      * @param int $max
      * @param int $timeout 
      */
-    public function executeQueue(Queue $queue, $max, $timeout = 30)
+    public function executeQueue(Queue $queue, $max, $timeout = 30, $attempts = 3)
     {
         foreach($this->receiveQueueMessages($queue, $max, $timeout) as $message) {
             try {
                 $message->execute();
+                $message->success();
                 $this->deleteMessage($message);
             } catch(\Exception $e) {
+                if ($message->attempts >= $attempts) {
+                    $message->error();
+                    $this->deleteMessage($message);
+                    continue;
+                }
                 $this->log($message, $e);
             }
         }
@@ -210,17 +219,18 @@ class Manager
         $body   = base64_encode(serialize($message));
         $md5    = md5($body);
 
-        $sql = 'INSERT INTO ' . $this->messageTable . '
-            (queue_id, body, created, timeout, md5)
+        $sql = 'INSERT INTO message
+            (queue_id, body, md5, timeout, created, attempts)
             VALUES
-            (:queue_id, :body, :created, :timeout, :md5)
+            (:queue_id, :body, :md5, :timeout, :created, :attempts)
             ';
         $stmt = $this->getDb()->prepare($sql);
         $stmt->bindParam(':queue_id', $qid, \PDO::PARAM_INT);
         $stmt->bindParam(':body', $body, \PDO::PARAM_STR);
         $stmt->bindParam(':md5', $md5, \PDO::PARAM_STR);
-        $stmt->bindValue(':created', time(), \PDO::PARAM_INT);
         $stmt->bindValue(':timeout', 30, \PDO::PARAM_INT);
+        $stmt->bindValue(':created', time(), \PDO::PARAM_INT);
+        $stmt->bindValue(':attempts', 0, \PDO::PARAM_INT);
         $stmt->execute();
         return true;
     }

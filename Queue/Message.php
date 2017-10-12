@@ -28,7 +28,10 @@ abstract class Message
     }
 
     abstract public function execute();
-    
+
+	public function success() {}
+	public function error() {}
+
     public function toArray()
     {
         return $this->_data;

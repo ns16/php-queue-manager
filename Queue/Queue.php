@@ -95,9 +95,9 @@ class Queue
      * @param int $max 
      * @param int $timeout 
      */
-    public function execute($max = 50, $timeout = self::RECEIVE_TIMEOUT_DEFAULT)
+    public function execute($max = 50, $timeout = 30, $attempts = 3)
     {
-        $this->getManager()->executeQueue($this, $max, $timeout);
+        $this->getManager()->executeQueue($this, $max, $timeout, $attempts);
     }
     
     /**
