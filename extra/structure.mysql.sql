@@ -4,12 +4,13 @@ DROP TABLE IF EXISTS `message`;
 CREATE TABLE `message` (
   `message_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `queue_id` int(11) unsigned NOT NULL,
-  `handle` char(32) NOT NULL DEFAULT '',
+  `handle` char(32) DEFAULT '',
   `body` text NOT NULL,
   `md5` char(32) NOT NULL DEFAULT '',
   `timeout` double NOT NULL,
   `created` int(11) unsigned NOT NULL,
-  `log` text NOT NULL,
+  `log` text,
+  `attempts` int(11) unsigned NOT NULL,
   PRIMARY KEY (`message_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

@@ -13,6 +13,8 @@ CREATE TABLE message
   body VARCHAR(8192) NOT NULL,
   md5 CHAR(32) NOT NULL,
   timeout REAL,
-  created INTEGER
-, "log" TEXT);
+  created INTEGER,
+  log TEXT,
+  attempts INTEGER,
+);
 COMMIT;
