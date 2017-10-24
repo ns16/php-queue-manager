@@ -357,7 +357,21 @@ class Manager
         }
         return $list;
     }
-    
+
+    /**
+     * Remove all messages from queue
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function deleteAllMessages($name)
+    {
+        $qid = $this->getQueueId($name);
+        $sth = $this->getDb()->prepare('DELETE FROM ' . $this->messageTable . ' WHERE queue_id = ?');
+        $sth->execute(array($qid));
+        return true;
+    }
+
     /**
      * Remove message from queue
      * 
