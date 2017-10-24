@@ -169,13 +169,15 @@ class Manager
      * 
      * @param Queue $queue
      * @param int $max
-     * @param int $timeout 
+     * @param int $timeout
+     * @return array
      */
     public function executeQueue(Queue $queue, $max, $timeout = 30, $attempts = 3)
     {
+        $result = [];
         foreach($this->receiveQueueMessages($queue, $max, $timeout) as $message) {
             try {
-                $message->execute();
+                $result[] = $message->execute();
                 $message->success();
                 $this->deleteMessage($message);
             } catch(\Exception $e) {
@@ -187,6 +189,7 @@ class Manager
                 $this->log($message, $e);
             }
         }
+        return $result;
     }
     
     /**

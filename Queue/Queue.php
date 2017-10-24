@@ -93,11 +93,12 @@ class Queue
      * Executes $max messages from queue
      * 
      * @param int $max 
-     * @param int $timeout 
+     * @param int $timeout
+     * @return array
      */
     public function execute($max = 50, $timeout = 30, $attempts = 3)
     {
-        $this->getManager()->executeQueue($this, $max, $timeout, $attempts);
+        return $this->getManager()->executeQueue($this, $max, $timeout, $attempts);
     }
     
     /**
