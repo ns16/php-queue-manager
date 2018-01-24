@@ -181,6 +181,7 @@ class Manager
                 $message->success();
                 $this->deleteMessage($message);
             } catch(\Exception $e) {
+				$attempts = isset($message->_attempts) ? $message->_attempts : $attempts;
                 if ($message->attempts >= $attempts) {
                     $message->error();
                     $this->deleteMessage($message);
